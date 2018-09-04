@@ -110,6 +110,7 @@ then
     tc qdisc del dev $IFACE ingress 2> /dev/null > /dev/null
     tc qdisc del dev $IFB   root    2> /dev/null > /dev/null
     tc qdisc del dev $IFB   ingress 2> /dev/null > /dev/null
+    ip link delete $IFB type ifb 2>&1  >>/dev/null
     exit
 fi
 
