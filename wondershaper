@@ -14,7 +14,7 @@
 QUANTUM=6000
 BURST=15k
 COMMONOPTIONS="$COMMONOPTIONS"
-VERSION=1.4
+VERSION=1.4.1
 
 usage()
 {
@@ -49,7 +49,8 @@ EOF
 DSPEED=
 USPEED=
 IFACE=
-IFB="ifb0"
+#IFB="ifb0"
+IFB=
 MODE=
 
 while getopts hvd:u:a:pcs o
@@ -95,6 +96,14 @@ then
     exit
 fi
 
+IFBNUM=$(echo $IFACE |egrep -o "[0-9].+?")
+IFB="ifb$IFBNUM"
+ip a|grep $IFB 2>&1  >>/dev/null
+if [ $? -ne 0 ]
+then
+    ip link add $IFB type ifb
+fi
+
 if [ "$MODE" = "clear" ]
 then
     tc qdisc del dev $IFACE root    2> /dev/null > /dev/null
@@ -138,12 +147,14 @@ then
 
     tc class add dev $IFACE parent 1: classid 1:1 htb \
         rate ${USPEED}kbit \
+        burst $BURST \
         prio 5 $COMMONOPTIONS
 
     # high prio class 1:10:
 
     tc class add dev $IFACE parent 1:1 classid 1:10 htb \
         rate $[40*$USPEED/100]kbit ceil $[95*$USPEED/100]kbit \
+        burst $BURST \
         prio 1 $COMMONOPTIONS
 
     # bulk and default class 1:20 - gets slightly less traffic,
@@ -151,12 +162,14 @@ then
 
     tc class add dev $IFACE parent 1:1 classid 1:20 htb \
         rate $[40*$USPEED/100]kbit ceil $[95*$USPEED/100]kbit \
+        burst $BURST \
         prio 2 $COMMONOPTIONS
 
     # 'traffic we hate'
 
     tc class add dev $IFACE parent 1:1 classid 1:30 htb \
         rate $[20*$USPEED/100]kbit ceil $[90*$USPEED/100]kbit \
+        burst $BURST \
         prio 3 $COMMONOPTIONS
 
     # all get Stochastic Fairness:
@@ -235,7 +248,7 @@ then
     
     # Add class and rules for virtual
     tc qdisc add dev $IFB root handle 2: htb
-    tc class add dev $IFB parent 2: classid 2:1 htb rate ${DSPEED}kbit
+    tc class add dev $IFB parent 2: classid 2:1 htb rate ${DSPEED}kbit burst $BURST 
     
     # Add filter to rule for IP address
     tc filter add dev $IFB protocol ip parent 2: prio 1 u32 match ip src 0.0.0.0/0 flowid 2:1
