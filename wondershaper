@@ -12,7 +12,7 @@
 # See the ChangeLog for information on the individual contributions of the authors.
 
 QUANTUM=6000
-BURST=15k
+BURST=30k
 COMMONOPTIONS="$COMMONOPTIONS"
 VERSION=1.4.1
 
